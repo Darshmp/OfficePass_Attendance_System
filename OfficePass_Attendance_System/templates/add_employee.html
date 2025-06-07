@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Employee</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <style>
+    .login-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .login-header img {
+      width: 90px;
+      height: 50px;
+      object-fit: contain;
+      order: 1; /* Moves image to right */
+    }
+    .login-header h3 {
+      order: 1; /* Keeps text on left */
+      margin-right: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .login-header {
+        flex-direction: column;
+        text-align: center;
+      }
+      .login-header img {
+        width: 80px;
+        height: 450px;
+        margin-top: 10px;
+        order: 2;
+      }
+      .login-header h3 {
+        order: 1;
+        margin-right: 0;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      .card {
+        margin-top: 1rem !important;
+      }
+      .login-header img {
+        width: 70px;
+        height: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+ <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header text-center">
+            <div class="login-header">
+              <h3 class="h5 mb-0">
+                <i class="bi bi-person-plus me-2"></i>Add New Employee
+              </h3>
+              <img src="{{ url_for('static', filename='images/elll.png') }}" alt="Company Logo">
+            </div>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              
+              <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" 
+                       name="name" 
+                       class="form-control" 
+                       required
+                       placeholder="Enter full name">
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Employee ID</label>
+                <input type="text" 
+                       name="employee_id" 
+                       class="form-control" 
+                       required
+                       placeholder="Enter employee ID">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Department</label>
+                <input type="text" 
+                       name="department" 
+                       class="form-control" 
+                       required
+                       placeholder="Enter department">
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Initial Passcode</label>
+                <input type="password" 
+                       name="passcode" 
+                       class="form-control" 
+                       required
+                       placeholder="Enter passcode">
+              </div>
+              
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-save me-2"></i>Add Employee
+              </button>
+            </form>
+          </div>
+        </div>
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary mt-3">
+          <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

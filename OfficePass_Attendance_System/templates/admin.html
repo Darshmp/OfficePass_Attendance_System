@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+  <style>
+    :root {
+      --primary-color: #0d6efd;
+      --success-color: #198754;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+    }
+    
+    body {
+      background-color: #f8f9fa;
+    }
+    
+    .employee-card {
+      transition: all 0.3s ease;
+      border-left: 4px solid var(--primary-color);
+    }
+    .employee-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .attendance-badge {
+      font-size: 0.75rem;
+    }
+    .nav-pills .nav-link.active {
+      font-weight: 500;
+      background-color: var(--primary-color);
+    }
+    .summary-card {
+      border-radius: 0.5rem;
+      border: none;
+    }
+    .fc-toolbar-title {
+      font-size: 1.1rem;
+    }
+    .fc-button {
+      padding: 0.25rem 0.5rem;
+      background-color: var(--primary-color);
+      border: none;
+    }
+    .fc-button:hover {
+      background-color: #0b5ed7;
+    }
+    .fc-button-active {
+      background-color: #0b5ed7;
+    }
+    .fc-daygrid-day-frame {
+      min-height: 3em;
+    }
+    .fc-daygrid-day-number {
+      font-size: 0.9em;
+      padding: 2px;
+    }
+    .fc-daygrid-day-top {
+      display: flex;
+      justify-content: center;
+    }
+    .fc-day-past, .fc-day-future {
+      opacity: 0.6;
+    }
+    .dashboard-header {
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .table-responsive {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .tab-content {
+      background-color: white;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    }
+    /* Add to existing styles */
+#employeeSearch {
+  border-right: none;
+}
+
+#clearSearch {
+  border-left: none;
+  background-color: white;
+}
+s
+.filter-option.active {
+  background-color: #e9ecef;
+  font-weight: 500;
+}
+/* Logo styling */
+.logo-container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.company-logo {
+  height: 50px;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+/* Media queries */
+@media (max-width: 992px) {
+  .logo-container {
+    position: static;
+    transform: none;
+    order: -1;
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+  
+  .dashboard-header > div {
+    flex-direction: column;
+  }
+  
+  .company-logo {
+    height: 35px;
+  }
+}
+
+@media (max-width: 768px) {
+  .company-logo {
+    height: 30px;
+  }
+  
+  .dashboard-header {
+    padding: 1.5rem 1rem !important;
+  }
+  
+  .summary-card .fs-1 {
+    font-size: 1.75rem !important;
+  }
+  
+  .employee-card {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .company-logo {
+    height: 25px;
+    max-width: 120px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .nav-pills .nav-link {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  #employeeSearch {
+    width: 200px !important;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="container-fluid p-0">
+   <div class="dashboard-header p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+      <h1 class="h3 mb-0">
+        <i class="bi bi-speedometer2 me-2"></i>Admin Dashboard
+      </h1>
+    </div>
+    
+    <!-- Logo in the center -->
+    <div class="logo-container text-center">
+      <img src="{{ url_for('static', filename='images/elll.png') }}" alt="Company Logo" class="company-logo">
+    </div>
+    
+    <div class="d-flex align-items-center">
+      <span class="me-3 text-muted">
+        <i class="bi bi-person-fill me-1"></i>{{ session.admin_username }}
+      </span>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+    </div>
+  </div>
+</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mx-4">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="container-fluid px-4">
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card summary-card bg-primary text-white mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="card-title">Total Employees</h5>
+                  <h2 class="mb-0">{{ employees_count }}</h2>
+                </div>
+                <i class="bi bi-people-fill fs-1 opacity-50"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card summary-card bg-success text-white mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="card-title">Active Today</h5>
+                  <h2 class="mb-0">{{ active_today_count }}</h2>
+                </div>
+                <i class="bi bi-check-circle-fill fs-1 opacity-50"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card summary-card bg-warning text-white mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="card-title">On Break</h5>
+                  <h2 class="mb-0">{{ on_break_count }}</h2>
+                </div>
+                <i class="bi bi-cup-hot-fill fs-1 opacity-50"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <ul class="nav nav-pills mb-4">
+            <li class="nav-item">
+              <a class="nav-link active" href="#employees" data-bs-toggle="tab">
+                <i class="bi bi-people-fill me-1"></i>Employees
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#recent-activity" data-bs-toggle="tab">
+                <i class="bi bi-clock-history me-1"></i>Recent Activity
+              </a>
+            </li>
+            <!-- <li class="nav-item">
+              <a class="nav-link" href="#reports" data-bs-toggle="tab">
+                <i class="bi bi-file-earmark-bar-graph me-1"></i>Reports
+              </a>
+            </li> -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin_calendar') }}">
+                <i class="bi bi-calendar me-1"></i>Calendar
+              </a>
+            </li>
+            <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('pending_leaves') }}">
+        <i class="bi bi-envelope-exclamation me-1"></i>Pending Leaves
+    </a>
+</li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- <div class="tab-pane fade show active" id="employees"> -->
+              <!-- In admin.html, inside the #employees tab-pane -->
+<div class="tab-pane fade show active" id="employees">
+  <!-- Add this search form -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Employee List</h5>
+    <div class="d-flex">
+      <div class="input-group me-2" style="width: 300px;">
+        <input type="text" id="employeeSearch" class="form-control form-control-sm" 
+               placeholder="Search by name or ID...">
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="clearSearch">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                data-bs-toggle="dropdown">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item filter-option" data-filter="all" href="#">All Employees</a></li>
+          <li><a class="dropdown-item filter-option" data-filter="active" href="#">Active Only</a></li>
+          <li><a class="dropdown-item filter-option" data-filter="inactive" href="#">Inactive Only</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+              <!-- <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"> -->
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="employeeContainer">
+                {% for employee in employees %}
+                <div class="col">
+                  <div class="card employee-card h-100">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start mb-3">
+                        <!-- In the employee card section -->
+<div>
+    <h5 class="card-title mb-1">{{ employee.name }}</h5>
+    <span class="text-muted">ID: {{ employee.employee_id }}</span>
+</div>
+                        <span class="badge bg-{{ 'success' if employee.is_active else 'secondary' }}">
+                          {{ 'Active' if employee.is_active else 'Inactive' }}
+                        </span>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between small">
+                          <span class="text-muted">Department:</span>
+                          <span>{{ employee.department or 'N/A' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                          <span class="text-muted">Last Active:</span>
+                          <span>{{ employee.last_active or 'Never' }}</span>
+                        </div>
+                        <!-- In admin.html -->
+                     
+<div class="d-flex justify-content-between small">
+    <span class="text-muted">Working Days:</span>
+    <span>{{ employee.working_days or 0 }}</span>
+</div>
+                      </div>
+                      
+                      <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_employee_detail', id=employee.id) }}" 
+                           class="btn btn-sm btn-outline-primary">
+                          <i class="bi bi-eye me-1"></i>View
+                        </a>
+                        <div class="dropdown">
+                          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                  type="button" data-bs-toggle="dropdown">
+                            Actions
+                          </button>
+                         <ul class="dropdown-menu">
+  <li><a class="dropdown-item" href="{{ url_for('edit_employee', id=employee.id) }}">
+    <i class="bi bi-pencil me-2"></i>Edit
+  </a></li>
+  <li><a class="dropdown-item" href="{{ url_for('reset_password', id=employee.id) }}">
+    <i class="bi bi-key me-2"></i>Reset Password
+  </a></li>
+  <li><hr class="dropdown-divider"></li>
+  <!-- <li><a class="dropdown-item text-danger" href="{{ url_for('toggle_employee_status', id=employee.id) }}">
+    <i class="bi bi-person-x me-2"></i>{{ 'Deactivate' if employee.is_active else 'Activate' }}
+  </a></li> -->
+  <li><a class="dropdown-item text-danger" 
+       href="#" 
+       data-delete-url="{{ url_for('delete_employee', id=employee.id) }}">
+      <i class="bi bi-trash me-2"></i>Delete
+    </a>
+  </li>
+</ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+  <div class="tab-pane fade" id="recent-activity">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Employee</th>
+          <th>Session Type</th>
+          <th>Time In</th>
+          <th>Time Out</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+<!-- admin.html -->
+<tbody>
+  {% for record in recent_activity %}
+    {% if record.session_type in ['work', 'break', 'logout'] %}
+      <tr>
+        <td>{{ record.date }}</td>
+        <td>{{ record.employee_name }}</td>
+        <td>
+          {% if record.session_type == 'work' %}
+            <span class="badge bg-info">Work Session</span>
+          {% elif record.session_type == 'break' %}
+            <span class="badge bg-warning text-dark">Break Session</span>
+          {% elif record.session_type == 'logout' %}
+            <span class="badge bg-secondary">Logout</span>
+          {% endif %}
+        </td>
+        <td>{{ record.login_time or '-' }}</td>
+        <td>{{ record.logout_time or '-' }}</td>
+        <td>
+          {% if record.logout_time %}
+            <span class="badge bg-success">Completed</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Active</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endif %}
+  {% else %}
+    <tr>
+      <td colspan="6" class="text-center text-muted">No recent activity found</td>
+    </tr>
+  {% endfor %}
+</tbody>
+    </table>
+  </div>
+</div>
+
+            <div class="tab-pane fade" id="reports">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-4">
+                    <div class="card-body">
+                      <h5 class="card-title">Attendance Summary</h5>
+                      <canvas id="attendanceChart" height="200"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Department Distribution</h5>
+                      <canvas id="departmentChart" height="200"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title mb-3">
+                <i class="bi bi-list-check me-2"></i>Quick Actions
+              </h5>
+              <div class="d-grid gap-2">
+  <a href="{{ url_for('add_employee') }}" class="btn btn-outline-primary text-start">
+    <i class="bi bi-plus-circle me-2"></i>Add New Employee
+  </a>
+  <button class="btn btn-outline-warning text-start" data-bs-toggle="modal" data-bs-target="#resetAdminPasswordModal">
+        <i class="bi bi-key me-2"></i>Reset Password
+          </button> 
+  <!-- In admin.html, replace the Export Attendance button with this dropdown -->
+<div class="dropdown">
+  <button class="btn btn-outline-success dropdown-toggle" 
+          type="button" 
+          id="exportDropdown" 
+          data-bs-toggle="dropdown" 
+          aria-expanded="false">
+    <i class="bi bi-file-earmark-excel me-2"></i>Export Attendance
+  </button>
+  <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+    {% for month in range(1, 13) %}
+      <li>
+        <a class="dropdown-item" href="{{ url_for('export_attendance', month=month) }}">
+          {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December'][month-1] }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+  <!-- In the Quick Actions section -->
+<a href="{{ url_for('manage_holidays') }}" class="btn btn-outline-info text-start">
+    <i class="bi bi-calendar-event me-2"></i>Manage Holidays
+</a>
+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+   <div class="modal fade" id="resetAdminPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Admin Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="resetAdminPasswordForm" method="post" action="{{ url_for('admin_reset_password') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password" required minlength="6">
+                        <div class="form-text">Password must be at least 6 characters long</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required minlength="6">
+                        <div id="passwordMatchError" class="invalid-feedback">Passwords do not match</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="resetAdminPasswordForm" class="btn btn-primary">Update Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize charts
+      const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+      const attendanceChart = new Chart(attendanceCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Present', 'Absent', 'Late', 'On Leave'],
+          datasets: [{
+            label: 'This Week',
+            data: [65, 10, 15, 10],
+            backgroundColor: [
+              'rgba(40, 167, 69, 0.7)',
+              'rgba(220, 53, 69, 0.7)',
+              'rgba(255, 193, 7, 0.7)',
+              'rgba(23, 162, 184, 0.7)'
+            ],
+            borderColor: [
+              'rgba(40, 167, 69, 1)',
+              'rgba(220, 53, 69, 1)',
+              'rgba(255, 193, 7, 1)',
+              'rgba(23, 162, 184, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+      const departmentChart = new Chart(departmentCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Development', 'Marketing', 'HR', 'Operations', 'Finance'],
+          datasets: [{
+            data: [30, 20, 15, 20, 15],
+            backgroundColor: [
+              'rgba(13, 110, 253, 0.7)',
+              'rgba(111, 66, 193, 0.7)',
+              'rgba(214, 51, 132, 0.7)',
+              'rgba(253, 126, 20, 0.7)',
+              'rgba(32, 201, 151, 0.7)'
+            ],
+            borderColor: [
+              'rgba(13, 110, 253, 1)',
+              'rgba(111, 66, 193, 1)',
+              'rgba(214, 51, 132, 1)',
+              'rgba(253, 126, 20, 1)',
+              'rgba(32, 201, 151, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'right'
+            }
+          }
+        }
+      });
+    });
+  </script>
+
+  <!-- In admin.html, add this modal at the bottom of the file -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this employee? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a id="confirmDelete" href="#" class="btn btn-danger">Delete Employee</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    
+    document.querySelectorAll('[data-delete-url]').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const deleteUrl = this.getAttribute('data-delete-url');
+        confirmDeleteBtn.href = deleteUrl;
+        deleteModal.show();
+      });
+    });
+  });
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('employeeSearch');
+    const clearBtn = document.getElementById('clearSearch');
+    const employeeContainer = document.getElementById('employeeContainer');
+    const filterOptions = document.querySelectorAll('.filter-option');
+    let currentFilter = 'all';
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+      filterEmployees();
+    });
+    
+    // Clear search
+    clearBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      filterEmployees();
+      searchInput.focus();
+    });
+    
+    // Filter options
+    filterOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.preventDefault();
+        currentFilter = this.dataset.filter;
+        filterOptions.forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        filterEmployees();
+      });
+    });
+    
+    function filterEmployees() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const cards = employeeContainer.querySelectorAll('.col');
+      
+      cards.forEach(card => {
+        const name = card.querySelector('.card-title').textContent.toLowerCase();
+        const idElement = card.querySelector('.text-muted');
+        const id = idElement ? idElement.textContent.split(':')[1].trim().toLowerCase() : '';
+        const status = card.querySelector('.badge').textContent.toLowerCase();
+        
+        const nameMatch = name.includes(searchTerm);
+        const idMatch = id.includes(searchTerm);
+        const filterMatch = 
+          currentFilter === 'all' ||
+          (currentFilter === 'active' && status === 'active') ||
+          (currentFilter === 'inactive' && status === 'inactive');
+        
+        if ((nameMatch || idMatch) && filterMatch) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  });
+</script>
+
+<script>
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const form = document.getElementById('resetAdminPasswordForm');
+        
+        function validatePassword() {
+            if (newPassword.value !== confirmPassword.value) {
+                confirmPassword.classList.add('is-invalid');
+                return false;
+            } else {
+                confirmPassword.classList.remove('is-invalid');
+                return true;
+            }
+        }
+        
+        confirmPassword.addEventListener('input', validatePassword);
+        newPassword.addEventListener('input', validatePassword);
+        
+        form.addEventListener('submit', function(e) {
+            if (!validatePassword()) {
+                e.preventDefault();
+                return false;
+            }
+            return true;
+        });
+    });
+</script>
+</body>
+</html>

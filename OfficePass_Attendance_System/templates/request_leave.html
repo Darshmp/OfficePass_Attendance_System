@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Leave</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    .header-logo {
+      max-width: 150px;
+      margin: 0 auto 1.5rem;
+      display: block;
+    }
+    .leave-calendar {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .sunday {
+      color: #dc3545;
+    }
+    .alert-container {
+      max-width: 600px;
+      margin: 0 auto 20px;
+    }
+
+    @media (max-width: 768px) {
+      .header-logo {
+        max-width: 120px;
+        margin-bottom: 1rem;
+      }
+      .leave-calendar {
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .header-logo {
+        max-width: 100px;
+      }
+      .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .d-flex h1, .d-flex a {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid p-4">
+    
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">
+        <i class="bi bi-calendar-x me-2"></i>Request Leave
+      </h1>
+      <img src="{{ url_for('static', filename='images/elll.png') }}" alt="Company Logo" class="header-logo">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+      </a>
+    </div>
+
+    <!-- Flash Messages Container -->
+    <div class="alert-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <div class="card leave-calendar">
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <div class="mb-3">
+            <label for="leaveDate" class="form-label">Select Date</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="leaveDate" 
+                   name="leave_date" 
+                   placeholder="Select date" 
+                   value="{{ request.form.leave_date or '' }}"
+                   required>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Leave Type</label>
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="radio" 
+                     name="leave_type" 
+                     id="paidLeave" 
+                     value="paid_leave" 
+                     required>
+              <label class="form-check-label" for="paidLeave">
+                Paid Leave (1 per month)
+                <small class="text-muted d-block">Only one approved paid leave per calendar month</small>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="radio" 
+                     name="leave_type" 
+                     id="lossOfPay" 
+                     value="loss_of_pay">
+              <label class="form-check-label" for="lossOfPay">
+                Loss of Pay (Unlimited)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="radio" 
+                     name="leave_type" 
+                     id="morningHalf" 
+                     value="morning_half">
+              <label class="form-check-label" for="morningHalf">
+                Morning Half Day (2 per month)
+                <small class="text-muted d-block">Maximum two half-days (any combination) per month</small>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="radio" 
+                     name="leave_type" 
+                     id="afternoonHalf" 
+                     value="afternoon_half">
+              <label class="form-check-label" for="afternoonHalf">
+                Afternoon Half Day (2 per month)
+                <small class="text-muted d-block">Maximum two half-days (any combination) per month</small>
+              </label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="radio" 
+                     name="leave_type" 
+                     id="weekOff" 
+                     value="week_off">
+              <label class="form-check-label" for="weekOff">
+                Week-Off (1 per week)
+                <small class="text-muted d-block">One week-off per week (Sun-Sat)</small>
+              </label>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-send me-2"></i>Submit Request
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const holidayDates = {{ holiday_dates | tojson | safe }};
+      
+      flatpickr("#leaveDate", {
+        minDate: "today",
+        disable: [
+          function(date) {
+            const dateStr = date.toISOString().split('T')[1];
+            return holidayDates.includes(dateStr);
+          }
+        ],
+        locale: {
+          firstDayOfWeek: 1
+        }
+      });
+    });
+  </script>
+</body>
+</html>

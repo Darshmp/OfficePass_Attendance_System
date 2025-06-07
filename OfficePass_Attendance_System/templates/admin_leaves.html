@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        /* Logo Styles */
+        .header-logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header-logo {
+            max-height: 80px;
+            max-width: 100%;
+        }
+
+        .table-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .table-controls .left-controls, 
+    .table-controls .right-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .sort-option {
+        cursor: pointer;
+        white-space: nowrap;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+    .sort-option:hover {
+        background-color: #f0f0f0;
+    }
+    .sort-option.active {
+        font-weight: bold;
+        color: #0d6efd;
+        background-color: #e7f1ff;
+    }
+    .sort-option i {
+        margin-left: 5px;
+    }
+    .group-selector {
+        min-width: 150px;
+    }
+    .date-range-selector {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .group-header {
+        background-color: #f8f9fa !important;
+        font-weight: bold;
+    }
+        .history-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .history-container.active {
+            display: block;
+        }
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .toggle-btn {
+            margin: 0 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .toggle-btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .month-selector {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(to right, #e9ecef, #f8f9fa);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .highlight-pending {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        .highlight-approved {
+            background-color: rgba(25, 135, 84, 0.1);
+        }
+        .highlight-rejected {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        .filter-form .row {
+            margin-bottom: 10px;
+        }
+        .table-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .table-controls .left-controls, 
+    .table-controls .right-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .sort-option {
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .sort-option.active {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .sort-option i {
+        margin-left: 5px;
+    }
+    .group-selector {
+        min-width: 150px;
+    }
+    .date-range-selector {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    /* Media Queries */
+    @media (max-width: 992px) {
+        .header-logo {
+            max-height: 70px;
+        }
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .filter-form .col-md-3, 
+        .filter-form .col-md-2 {
+            width: 50%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header-logo {
+            max-height: 60px;
+        }
+        .toggle-container {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toggle-btn {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .filter-form .col-md-3, 
+        .filter-form .col-md-2 {
+            width: 100%;
+        }
+        .month-selector {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .header-logo {
+            max-height: 50px;
+        }
+        .table-controls {
+            flex-direction: column;
+        }
+        .table-controls .left-controls,
+        .table-controls .right-controls {
+            width: 100%;
+            justify-content: space-between;
+        }
+        .date-range-selector {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="container-fluid p-4">
+        <!-- Company Logo -->
+        
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-clock-history me-2"></i>Leave Management
+            </h1>
+
+            <div class="header-logo-container">
+            <img src="{{ url_for('static', filename='images/elll.png') }}" alt="Company Logo" class="header-logo">
+        </div>
+            <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Toggle Buttons -->
+        <div class="toggle-container">
+            <button id="pendingBtn" class="btn btn-primary toggle-btn active">
+                <i class="bi bi-hourglass-split me-1"></i>Pending Requests
+            </button>
+            <button id="historyBtn" class="btn btn-outline-primary toggle-btn">
+                <i class="bi bi-archive me-1"></i>Leave History
+            </button>
+        </div>
+        
+
+        <!-- Pending Leaves Section -->
+        <div id="pendingSection">
+            <!-- Filter Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <input type="hidden" name="view" value="pending">
+                        <div class="col-md-3">
+                            <input type="text" name="employee" class="form-control" 
+                                   placeholder="Employee name/ID" value="{{ request.args.get('employee', '') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="approved" {% if request.args.get('status') == 'approved' %}selected{% endif %}>Approved</option>
+                                <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="leave_type" class="form-select">
+                                <option value="">All Leave Types</option>
+                                <option value="paid_leave" {% if request.args.get('leave_type') == 'paid_leave' %}selected{% endif %}>Paid Leave</option>
+                                <option value="loss_of_pay" {% if request.args.get('leave_type') == 'loss_of_pay' %}selected{% endif %}>Loss of Pay</option>
+                                <option value="half_day" {% if request.args.get('leave_type') == 'half_day' %}selected{% endif %}>Half Day</option>
+                                <option value="week_off" {% if request.args.get('leave_type') == 'week_off' %}selected{% endif %}>Week-Off</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="start_date" class="form-control" 
+                                   value="{{ request.args.get('start_date', '') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="end_date" class="form-control" 
+                                   value="{{ request.args.get('end_date', '') }}">
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search me-1"></i>Search
+                            </button>
+                            <a href="{{ url_for('pending_leaves') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Leave Requests Table -->
+            <div class="card shadow">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Date</th>
+                                    <th>Leave Type</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- In the table body section -->
+<!-- ... existing code ... -->
+
+<!-- In the table body section -->
+{% for leave in leaves %}
+<tr>
+  <td>{{ leave.name }}</td>
+  <td>{{ leave.date }}</td>
+  <td>
+    <span class="badge bg-{{ 
+      'success' if leave.session_type == 'paid_leave' else
+      'danger' if leave.session_type == 'loss_of_pay' else
+      'warning text-dark' if leave.session_type in ['half_day', 'morning_half', 'afternoon_half'] else
+      'info'
+    }}">
+      {{ leave.session_type|replace('_', ' ')|title }}
+    </span>
+  </td>
+  <td>
+    {{ 0.5 if leave.session_type in ['half_day', 'morning_half', 'afternoon_half'] else 1 }}
+  </td>
+  <td>
+    <span class="badge bg-{{
+      'info' if leave.status == 'pending' else
+      'success' if leave.status == 'approved' else
+      'danger'
+    }}">
+      {{ leave.status|title }}
+    </span>
+  </td>
+  <td>
+    {% if leave.status == 'pending' %}
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('handle_leave', id=leave.id, action='approve') }}" 
+         class="btn btn-sm btn-success">
+        <i class="bi bi-check-lg"></i> Approve
+      </a>
+      <a href="{{ url_for('handle_leave', id=leave.id, action='reject') }}" 
+         class="btn btn-sm btn-danger">
+        <i class="bi bi-x-lg"></i> Reject
+      </a>
+    </div>
+    {% else %}
+    <span class="text-muted">Processed</span>
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+<!-- ... existing code ... -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div id="historySection" class="history-container">
+            <!-- Month Selector -->
+            <div class="month-selector">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-range me-2"></i>Select Month
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button id="prevMonthBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button id="nextMonthBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <select id="historyMonth" class="form-select">
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if current_month == i %}selected{% endif %}>
+                            {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                                'July', 'August', 'September', 'October', 'November', 'December'][i-1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select id="historyYear" class="form-select">
+                        {% for year in range(current_year-2, current_year+1) %}
+                        <option value="{{ year }}" {% if current_year == year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="loadHistoryBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat me-1"></i>Load
+                    </button>
+                </div>
+            </div>
+
+            <!-- Leave Statistics -->
+            <div class="stats-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-graph-up me-2"></i>Leave Summary
+                    <span id="summaryPeriod" class="text-muted">({{ current_month_name }} {{ current_year }})</span>
+                </h5>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.paid_leaves }}</div>
+                        <div class="stat-label">Paid Leaves</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.loss_of_pay }}</div>
+                        <div class="stat-label">Loss of Pay</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.half_days }}</div>
+                        <div class="stat-label">Half Days</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.total_leaves }}</div>
+                        <div class="stat-label">Total Leaves</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Table -->
+            <div class="card shadow">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Date</th>
+                                    <th>Leave Type</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+
+                               
+
+                               <!-- In the history table section -->
+{% for leave in history_leaves %}
+<tr>
+  <td>{{ leave.name }}</td>
+  <td>{{ leave.date }}</td>
+  <td>
+    <span class="badge bg-{{ 
+      'success' if leave.session_type == 'paid_leave' else
+      'danger' if leave.session_type == 'loss_of_pay' else
+      'warning text-dark' if leave.session_type in ['half_day', 'morning_half', 'afternoon_half'] else
+      'info'
+    }}">
+      {{ leave.session_type|replace('_', ' ')|title }}
+    </span>
+  </td>
+  <td>
+    {{ 0.5 if leave.session_type in ['morning_half', 'afternoon_half'] else 1 }}
+  </td>
+  <td>
+    <span class="badge bg-{{
+      'info' if leave.status == 'pending' else
+      'success' if leave.status == 'approved' else
+      'danger'
+    }}">
+      {{ leave.status|title }}
+    </span>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="5" class="text-center py-4">
+    <div class="alert alert-info mb-0">
+      <i class="bi bi-info-circle me-2"></i>
+      No leave history found for selected period
+    </div>
+  </td>
+</tr>
+{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if history_pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% for page_num in range(1, history_pages + 1) %}
+                <li class="page-item {% if page_num == current_page %}active{% endif %}">
+                    <a class="page-link" href="?view=history&month={{ current_month }}&year={{ current_year }}&page={{ page_num }}">{{ page_num }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle between Pending and History views
+            const pendingBtn = document.getElementById('pendingBtn');
+            const historyBtn = document.getElementById('historyBtn');
+            const pendingSection = document.getElementById('pendingSection');
+            const historySection = document.getElementById('historySection');
+            
+            // Initialize based on URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewParam = urlParams.get('view');
+            
+            if (viewParam === 'history') {
+                toggleView('history');
+            } else {
+                toggleView('pending');
+            }
+            
+            pendingBtn.addEventListener('click', () => toggleView('pending'));
+            historyBtn.addEventListener('click', () => toggleView('history'));
+            
+            function toggleView(view) {
+                if (view === 'pending') {
+                    pendingSection.style.display = 'block';
+                    historySection.style.display = 'none';
+                    pendingBtn.classList.add('active');
+                    historyBtn.classList.remove('active');
+                } else {
+                    pendingSection.style.display = 'none';
+                    historySection.style.display = 'block';
+                    historyBtn.classList.add('active');
+                    pendingBtn.classList.remove('active');
+                    
+                    // Update URL
+                    const url = new URL(window.location);
+                    url.searchParams.set('view', 'history');
+                    window.history.replaceState({}, '', url);
+                }
+            }
+            
+            // Month navigation
+            const monthSelect = document.getElementById('historyMonth');
+            const yearSelect = document.getElementById('historyYear');
+            const loadBtn = document.getElementById('loadHistoryBtn');
+            const prevBtn = document.getElementById('prevMonthBtn');
+            const nextBtn = document.getElementById('nextMonthBtn');
+            
+            loadBtn.addEventListener('click', loadHistory);
+            prevBtn.addEventListener('click', navigateMonth.bind(null, -1));
+            nextBtn.addEventListener('click', navigateMonth.bind(null, 1));
+            
+            function navigateMonth(direction) {
+                let month = parseInt(monthSelect.value);
+                let year = parseInt(yearSelect.value);
+                
+                month += direction;
+                
+                if (month > 12) {
+                    month = 1;
+                    year++;
+                } else if (month < 1) {
+                    month = 12;
+                    year--;
+                }
+                
+                monthSelect.value = month;
+                yearSelect.value = year;
+                
+                loadHistory();
+            }
+            
+            function loadHistory() {
+                const month = monthSelect.value;
+                const year = yearSelect.value;
+                
+                // Update URL to load the selected month
+                const url = new URL(window.location);
+                url.searchParams.set('view', 'history');
+                url.searchParams.set('month', month);
+                url.searchParams.set('year', year);
+                window.location.href = url.toString();
+            }
+            
+            // Handle history filter form
+            const historyFilterForm = document.getElementById('historyFilterForm');
+            
+            if (historyFilterForm) {
+                historyFilterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const params = new URLSearchParams();
+                    
+                    // Add current month/year to params
+                    params.set('view', 'history');
+                    params.set('month', monthSelect.value);
+                    params.set('year', yearSelect.value);
+                    
+                    // Add form data to params
+                    for (const [key, value] of formData.entries()) {
+                        if (value) params.append(key, value);
+                    }
+                    
+                    // Redirect with new query params
+                    window.location.href = '?' + params.toString();
+                });
+            }
+        });
+
+        // Add this to your existing script
+document.addEventListener('DOMContentLoaded', function() {
+    // Table controls functionality
+    function initTableControls(tableId) {
+        const table = document.querySelector(`#${tableId} table`);
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const groupOptions = document.querySelectorAll(`#${tableId} .group-option`);
+        const sortOptions = document.querySelectorAll(`#${tableId} .sort-option`);
+        const dateFrom = document.querySelector(`#${tableId} #dateFrom`);
+        const dateTo = document.querySelector(`#${tableId} #dateTo`);
+        const applyDateRange = document.querySelector(`#${tableId} #applyDateRange`);
+        
+        let currentGroup = 'none';
+        let currentSort = { field: 'date', order: 'asc' };
+        
+        // Grouping functionality
+        groupOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                currentGroup = this.dataset.group;
+                updateTable();
+            });
+        });
+        
+        // Sorting functionality
+        sortOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                sortOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentSort = {
+                    field: this.dataset.sort,
+                    order: this.dataset.order
+                };
+                updateTable();
+            });
+        });
+        
+        // Date range functionality
+        applyDateRange.addEventListener('click', function() {
+            updateTable();
+        });
+        
+        function updateTable() {
+            let filteredRows = [...rows];
+            
+            // Apply date filter if dates are selected
+            if (dateFrom.value && dateTo.value) {
+                const fromDate = new Date(dateFrom.value);
+                const toDate = new Date(dateTo.value);
+                
+                filteredRows = filteredRows.filter(row => {
+                    const dateStr = row.cells[1].textContent; // Assuming date is in second column
+                    const rowDate = new Date(dateStr);
+                    return rowDate >= fromDate && rowDate <= toDate;
+                });
+            }
+            
+            // Apply sorting
+            filteredRows.sort((a, b) => {
+                const aValue = a.cells[getColumnIndex(currentSort.field)].textContent.toLowerCase();
+                const bValue = b.cells[getColumnIndex(currentSort.field)].textContent.toLowerCase();
+                
+                if (currentSort.order === 'asc') {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+            
+            // Apply grouping
+            if (currentGroup !== 'none') {
+                const groups = {};
+                const groupIndex = getColumnIndex(currentGroup);
+                
+                filteredRows.forEach(row => {
+                    const groupKey = row.cells[groupIndex].textContent;
+                    if (!groups[groupKey]) {
+                        groups[groupKey] = [];
+                    }
+                    groups[groupKey].push(row);
+                });
+                
+                // Clear table
+                tbody.innerHTML = '';
+                
+                // Add grouped rows
+                Object.entries(groups).forEach(([groupName, groupRows]) => {
+                    // Add group header
+                    const groupHeader = document.createElement('tr');
+                    groupHeader.className = 'group-header table-primary';
+                    groupHeader.innerHTML = `<td colspan="${table.rows[0].cells.length}"><strong>${groupName}</strong></td>`;
+                    tbody.appendChild(groupHeader);
+                    
+                    // Add group rows
+                    groupRows.forEach(row => tbody.appendChild(row.cloneNode(true)));
+                });
+            } else {
+                // Just re-apply sorting if no grouping
+                tbody.innerHTML = '';
+                filteredRows.forEach(row => tbody.appendChild(row.cloneNode(true)));
+            }
+        }
+        
+        function getColumnIndex(field) {
+            // Map field names to column indices
+            const headerCells = table.querySelectorAll('thead th');
+            const headers = Array.from(headerCells).map(cell => cell.textContent.toLowerCase());
+            
+            if (field === 'employee') return headers.indexOf('employee');
+            if (field === 'leave_type') return headers.indexOf('leave type');
+            if (field === 'status') return headers.indexOf('status');
+            if (field === 'date') return headers.indexOf('date');
+            return 0;
+        }
+    }
+    
+    // Initialize controls for both tables
+    initTableControls('pendingSection');
+    initTableControls('historySection');
+});
+    </script>
+</body>
+</html>

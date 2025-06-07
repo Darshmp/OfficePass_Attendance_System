@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Details | {{ employee.name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+  <style>
+    /* Header Styles */
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .header-logo {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 60px;
+      object-fit: contain;
+    }
+    .header-title {
+      margin-right: auto;
+      padding-left: 20px;
+    }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
+    
+    /* Existing styles... */
+    .summary-card {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 0.5rem;
+      border: 1px solid #dee2e6;
+    }
+    .badge-lg {
+      font-size: 0.9rem;
+      padding: 0.5em 0.75em;
+    }
+    #employeeCalendar {
+      height: 400px;
+      margin-top: 1rem;
+    }
+    .session-badge {
+      min-width: 80px;
+      text-align: center;
+    }
+    @media print {
+      .btn, .fc-header-toolbar, .bi-printer {
+        display: none !important;
+      }
+      .card {
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+    .fc-event {
+      cursor: pointer;
+      border-radius: 4px;
+      border: none;
+      padding: 2px 4px;
+      font-size: 0.85rem;
+    }
+    .fc-day-sun {
+      background-color: rgba(220, 220, 220, 0.2);
+    }
+    .fc-event-holiday {
+      background-color: #ff69b4 !important;
+      border-color: #ff69b4 !important;
+      color: white !important;
+    }
+    .summary-period {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: normal;
+    }
+    .loading-indicator {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .loading-indicator.active {
+      display: flex;
+    }
+    .summary-container {
+      position: relative;
+    }
+    
+    /* Media Queries */
+    @media (max-width: 1200px) {
+      .header-logo {
+        width: 90px;
+        height: 54px;
+      }
+    }
+    
+    @media (max-width: 992px) {
+      .header-logo {
+        width: 80px;
+        height: 48px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .header-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+      }
+      .header-logo {
+        position: static;
+        transform: none;
+        order: 1;
+        margin: 0 auto 10px;
+      }
+      .header-title {
+        order: 2;
+        margin-right: 0;
+        padding-left: 0;
+        text-align: center;
+        width: 100%;
+      }
+      .header-actions {
+        order: 3;
+        margin-left: 0;
+        justify-content: center;
+        width: 100%;
+      }
+      #employeeCalendar {
+        height: 350px;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      .header-logo {
+        width: 70px;
+        height: 42px;
+      }
+      .header-title h1 {
+        font-size: 1.25rem;
+      }
+      .header-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+      }
+      #employeeCalendar {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid p-4">
+    <div class="header-container">
+      <div class="header-title">
+        <h1 class="h3 mb-1">
+          <i class="bi bi-person-lines-fill me-2"></i>{{ employee.name }}
+        </h1>
+        <span class="text-muted">Employee ID: {{ employee.employee_id }}</span>
+      </div>
+      <img src="{{ url_for('static', filename='images/elll.png') }}" alt="Company Logo" class="header-logo">
+      <div class="header-actions">
+        <a href="{{ url_for('admin', id=employee.id) }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+        <button class="btn btn-sm btn-primary" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Print
+        </button>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-3">
+      <a href="{{ url_for('employee_profile', id=employee.id) }}" class="btn btn-info">
+        <i class="bi bi-person-lines-fill me-1"></i>Edit Profile
+      </a>
+    </div>
+
+    <div class="row">
+      <!-- Summary Stats -->
+      <div class="col-md-4 mb-4">
+        <div class="card summary-card h-100 summary-container">
+          <div class="loading-indicator" id="summaryLoading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="bi bi-graph-up me-2"></i>Performance Summary
+              <span class="summary-period" id="summaryPeriod">(All Time)</span>
+            </h5>
+            
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-3">
+                <span>Working Days:</span>
+                <strong id="workingDays" class="badge bg-primary badge-lg">{{ stats['working_days'] or 0 }}</strong>
+              </div>
+              
+              <div class="d-flex justify-content-between mb-3">
+                <span>Total Hours:</span>
+                <strong id="totalHours" class="badge bg-info badge-lg">
+                  {{ "%.1f"|format(stats['total_hours']|float) }}h
+                </strong>
+              </div>
+
+              <div class="d-flex justify-content-between mb-3">
+                <span>Paid Leaves:</span>
+                <strong id="paidLeaves" class="badge bg-success badge-lg">{{ stats['paid_leaves'] }}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-3">
+                <span>Loss of Pay:</span>
+                <strong id="lossOfPay" class="badge bg-danger badge-lg">{{ stats['loss_of_pay_leaves'] }}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-3">
+                <span>Half Days:</span>
+                <strong id="halfDays" class="badge bg-warning badge-lg">{{ stats['half_day_leaves'] }}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-3">
+        <span>Week-Off Leaves:</span>
+        <strong id="weekOffLeaves" class="badge bg-info badge-lg">{{ stats['week_off_leaves'] }}</strong>
+    </div>
+
+              <!-- Add this new row below the half days row -->
+<div class="d-flex justify-content-between mb-3">
+    <span >Holidays:</span>
+    <strong id="holidays" class="badge bg-danger-subtle text-dark badge-lg">{{ stats['holidays'] }}</strong>
+
+</div>
+              
+              <div class="d-flex justify-content-between">
+                <span>Current Status:</span>
+                <span id="currentStatus" class="badge bg-{{ 'success' if stats['is_active'] else 'secondary' }} badge-lg">
+                  {{ 'Active' if stats['is_active'] else 'Inactive' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="mt-3">
+              <button id="resetSummary" class="btn btn-sm btn-outline-secondary w-100">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to All Time
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="col-md-8">
+        <!-- Attendance Calendar -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="bi bi-calendar-range me-2"></i>Attendance Calendar
+              <span class="badge bg-secondary ms-2">Sunday: Holiday</span>
+            </h5>
+            <div id="employeeCalendar"></div>
+          </div>
+        </div>
+
+        <!-- Attendance Records Table -->
+      <!--   <div class="card">
+          <div class="card-body">
+            <h5 class="card-title mb-4">
+              <i class="bi bi-clock-history me-2"></i>Attendance Records (Last 30 Days)
+            </h5>
+            
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Date</th>
+                    <th>Session Type</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for record in records %}
+                    <tr>
+                      <td>{{ record.date }}</td>
+                      <td>
+                        {% if record.session_type == 'work' %}
+                          <span class="badge bg-info">Work Session</span>
+                        {% elif record.session_type == 'logout' %}
+                          <span class="badge bg-secondary">Logout</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ record.login_time or '-' }}</td>
+                      <td>{{ record.logout_time or '-' }}</td>
+                      <td>
+                        {% if record.login_time and record.logout_time %}
+                          {{ calculate_duration(record.login_time, record.logout_time) }}
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% else %}
+                    <tr>
+                      <td colspan="5" class="text-center">
+                        <div class="alert alert-info mb-0">
+                          <i class="bi bi-info-circle me-2"></i>No work sessions found
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('employeeCalendar');
+        const employeeId = {{ employee.id }};
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // DOM elements for summary
+        const summaryPeriod = document.getElementById('summaryPeriod');
+        const workingDays = document.getElementById('workingDays');
+        const totalHours = document.getElementById('totalHours');
+        const paidLeaves = document.getElementById('paidLeaves');
+        const lossOfPay = document.getElementById('lossOfPay');
+        const halfDays = document.getElementById('halfDays');
+        const holidays = document.getElementById('holidays'); // New element
+        const currentStatus = document.getElementById('currentStatus');
+        const resetBtn = document.getElementById('resetSummary');
+        const summaryLoading = document.getElementById('summaryLoading');
+        
+        // Store original summary data
+        const originalSummary = {
+    workingDays: workingDays.textContent,
+    totalHours: totalHours.textContent,
+    paidLeaves: paidLeaves.textContent,
+    lossOfPay: lossOfPay.textContent,
+    halfDays: halfDays.textContent,
+    weekOffLeaves: weekOffLeaves.textContent,  // NEW
+    holidays:holidays.textContent,
+    currentStatus: currentStatus.textContent,
+
+    period: '(All Time)'
+};
+
+resetBtn.addEventListener('click', function() {
+    workingDays.textContent = originalSummary.workingDays;
+    totalHours.textContent = originalSummary.totalHours;
+    paidLeaves.textContent = originalSummary.paidLeaves;
+    lossOfPay.textContent = originalSummary.lossOfPay;
+    halfDays.textContent = originalSummary.halfDays;
+    weekOffLeaves.textContent = originalSummary.weekOffLeaves;  // NEW
+    currentStatus.textContent = originalSummary.currentStatus;
+    holidays.textContent = originalSummary.currentStatus;
+    currentStatus.className = 'badge bg-success badge-lg';
+    summaryPeriod.textContent = originalSummary.period;
+});
+        
+        // Function to update summary stats
+        function updateSummary(month, year) {
+    summaryLoading.classList.add('active');
+    
+    fetch(`/api/employee/${employeeId}/summary?month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            workingDays.textContent = data.working_days || 0;
+            totalHours.textContent = data.total_hours ? data.total_hours.toFixed(1) + 'h' : '0.0h';
+            paidLeaves.textContent = data.paid_leaves || 0;
+            lossOfPay.textContent = data.loss_of_pay_leaves || 0;
+            halfDays.textContent = data.half_day_leaves || 0;
+            // NEW: Update week-off leaves
+            weekOffLeaves.textContent = data.week_off_leaves || 0;
+            holidays.textContent = data.holidays || 0;
+            // Format period text
+            const monthName = monthNames[month - 1];
+            summaryPeriod.textContent = `(${monthName} ${year})`;
+            
+            summaryLoading.classList.remove('active');
+        })
+        .catch(error => {
+            console.error('Error fetching summary:', error);
+            summaryLoading.classList.remove('active');
+        });
+}
+        
+        // Initialize calendar
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek'
+            },
+            eventSources: [
+                // Employee attendance events
+                {
+                    url: `/api/employee/${employeeId}/attendance`,
+                    failure: function() {
+                        alert('Error loading attendance data');
+                    }
+                },
+                // Holidays
+                {
+                    url: '/api/holidays',
+                    failure: function() {
+                        alert('Error loading holidays');
+                    }
+                }
+            ],
+            eventDidMount: function(info) {
+                // Handle holiday events
+                if (info.event.extendedProps.isHoliday) {
+                    info.el.style.backgroundColor = '#ff69b4'; // Pink color
+                info.el.style.borderColor = '#ff69b4';
+                    return;
+                }
+                
+                // Handle leave events
+                const sessionType = info.event.extendedProps.session_type;
+                const status = info.event.extendedProps.status;
+                
+                // Set colors based on status and type
+                if (status === 'approved') {
+                    if (sessionType === 'paid_leave') {
+                        info.el.style.backgroundColor = '#28a745';
+                    } else if (sessionType === 'loss_of_pay') {
+                        info.el.style.backgroundColor = '#dc3545';
+                    } else if (sessionType === 'half_day') {
+                        info.el.style.backgroundColor = '#ffc107';
+                        info.el.style.color = '#000';
+                    } else if (sessionType === 'week_off') {
+                        info.el.style.backgroundColor = '#17a2b8';
+                    } else if (sessionType === 'morning_half' || sessionType === 'afternoon_half') {
+                        info.el.style.backgroundColor = '#ffc107';
+                        info.el.style.color = '#000';
+                    }
+                } else if (status === 'pending') {
+                    info.el.style.backgroundColor = '#6c757d';
+                } 
+                
+                else if (status === 'rejected') {
+                    info.el.style.backgroundColor = '#dc3545';
+                    info.el.style.opacity = '0.6';
+                }  
+                
+                // Add status indicator
+                const statusElement = document.createElement('div');
+                statusElement.className = 'fc-event-status';
+                statusElement.textContent = status === 'approved' ? '✓' : status === 'pending' ? '?' : '✗';
+                statusElement.style.position = 'absolute';
+                statusElement.style.top = '2px';
+                statusElement.style.right = '2px';
+                statusElement.style.fontSize = '10px';
+                statusElement.style.fontWeight = 'bold';
+                info.el.appendChild(statusElement);
+            },
+            datesSet: function(info) {
+                // Update summary for the current month
+                if (info.view.type === 'dayGridMonth') {
+                    const start = info.view.currentStart;
+                    const month = start.getMonth() + 1; // JavaScript months are 0-indexed
+                    const year = start.getFullYear();
+                    updateSummary(month, year);
+                }
+            }
+        });
+        
+        calendar.render();
+    });
+</script>
+</body>
+</html>
